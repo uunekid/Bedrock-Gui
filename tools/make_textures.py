@@ -1,4 +1,4 @@
-import json, os, random
+import json, os
 from PIL import Image, ImageDraw
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src", "main", "resources",
@@ -65,45 +65,3 @@ d.polygon([(104, 36), (104, 50), (112, 43)], fill=a)
 
 im.save(os.path.join(CON, "crafting_table.png"))
 print("textures written")
-
-# ---- Dark brick panorama (Bedrock-like dark background) ----
-BG = os.path.join(ROOT, "title", "background")
-os.makedirs(BG, exist_ok=True)
-SIZE, BW, BH, MORTAR = 512, 64, 32, 3
-rng = random.Random(7)
-rows = SIZE // BH
-cols = SIZE // BW
-colors = []
-for r in range(rows):
-    row = []
-    for c in range(cols):
-        if rng.random() < 0.12:
-            base = (96 + rng.randint(-10, 10), 58 + rng.randint(-8, 8), 42 + rng.randint(-6, 6))
-        else:
-            v = rng.randint(-8, 8)
-            base = (44 + v, 56 + v, 50 + v)
-        row.append(base)
-    colors.append(row)
-tile = Image.new("RGB", (SIZE, SIZE))
-px = tile.load()
-for y in range(SIZE):
-    r = y // BH
-    off = (BW // 2) if r % 2 else 0
-    for x in range(SIZE):
-        xx = (x + off) % SIZE
-        c = xx // BW
-        inx = xx % BW
-        iny = y % BH
-        if inx < MORTAR or iny < MORTAR:
-            col = (20, 26, 24)
-        else:
-            b = colors[r][c]
-            n = rng.randint(-5, 5)
-            col = (b[0] + n, b[1] + n, b[2] + n)
-        px[x, y] = col
-for i in range(6):
-    tile.save(os.path.join(BG, "panorama_%d.png" % i))
-
-# ---- Hide the "Java Edition" subtitle under the logo ----
-Image.new("RGBA", (128, 14), (0, 0, 0, 0)).save(os.path.join(ROOT, "title", "edition.png"))
-print("title textures written")
