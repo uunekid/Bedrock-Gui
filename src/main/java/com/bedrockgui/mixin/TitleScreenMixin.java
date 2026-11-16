@@ -24,7 +24,7 @@ public abstract class TitleScreenMixin extends Screen {
     }
 
     private static Component bedrockgui$label(String key) {
-        return Component.translatable(key).withStyle(style -> style.withColor(TextColor.fromRgb(0x6E6E6E)));
+        return Component.translatable(key).withStyle(style -> style.withColor(TextColor.fromRgb(0x505050)));
     }
 
     @Inject(method = "init", at = @At("TAIL"))
