@@ -34,19 +34,19 @@ public abstract class TitleScreenMixin extends Screen {
         }
 
         Minecraft mc = Minecraft.getInstance();
-        int x = this.width / 2 - 100;
-        int y = this.height / 4 + 48;
+        int x = this.width / 2 - 80;
+        int y = this.height / 4 + 40;
 
         this.addRenderableWidget(Button.builder(Component.translatable("bedrockgui.menu.play"),
-                b -> mc.setScreen(new SelectWorldScreen(this))).bounds(x, y, 200, 20).build());
+                b -> mc.setScreen(new SelectWorldScreen(this))).bounds(x, y, 160, 24).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("bedrockgui.menu.servers"),
-                b -> mc.setScreen(new JoinMultiplayerScreen(this))).bounds(x, y + 24, 200, 20).build());
+                b -> mc.setScreen(new JoinMultiplayerScreen(this))).bounds(x, y + 28, 160, 24).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("bedrockgui.menu.settings"),
-                b -> mc.setScreen(new OptionsScreen(this, mc.options))).bounds(x, y + 48, 200, 20).build());
+                b -> mc.setScreen(new OptionsScreen(this, mc.options))).bounds(x, y + 56, 160, 24).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("bedrockgui.menu.quit"),
-                b -> mc.stop()).bounds(x, y + 72, 200, 20).build());
+                b -> mc.stop()).bounds(x, y + 84, 160, 24).build());
     }
-                                                }
+}
