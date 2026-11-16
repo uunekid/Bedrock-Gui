@@ -6,6 +6,7 @@
   "description": "Bedrock-style interface for Minecraft Java: title screen, buttons, crafting table.",
   "authors": [],
   "license": "MIT",
+  "icon": "assets/bedrockgui/icon.png",
   "environment": "client",
   "mixins": ["bedrockgui.mixins.json"],
   "depends": {
