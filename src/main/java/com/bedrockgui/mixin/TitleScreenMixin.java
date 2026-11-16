@@ -1,15 +1,15 @@
+
 package com.bedrockgui.mixin;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;
 import net.minecraft.client.gui.screens.options.OptionsScreen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.network.chat.Component;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -24,29 +24,54 @@ public abstract class TitleScreenMixin extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void bedrockgui$init(CallbackInfo ci) {
-        for (GuiEventListener child : this.children()) {
-            if (child instanceof AbstractWidget widget
-                    && widget.getHeight() == 20
-                    && widget.getWidth() >= 98) {
-                widget.visible = false;
-                widget.active = false;
-            }
-        }
 
         Minecraft mc = Minecraft.getInstance();
-        int x = this.width / 2 - 80;
+
+        // Hide original Java menu buttons
+        this.children().forEach(child -> {
+            if (child instanceof Button button) {
+                button.visible = false;
+                button.active = false;
+            }
+        });
+
+        // Bedrock-style menu dimensions
+        int buttonWidth = 200;
+        int buttonHeight = 28;
+
+        int x = this.width / 2 - buttonWidth / 2;
         int y = this.height / 4 + 40;
 
-        this.addRenderableWidget(Button.builder(Component.translatable("bedrockgui.menu.play"),
-                b -> mc.setScreen(new SelectWorldScreen(this))).bounds(x, y, 160, 24).build());
+        // Play
+        this.addRenderableWidget(
+            Button.builder(
+                Component.translatable("bedrockgui.menu.play"),
+                b -> mc.setScreen(new SelectWorldScreen(this))
+            ).bounds(x, y, buttonWidth, buttonHeight).build()
+        );
 
-        this.addRenderableWidget(Button.builder(Component.translatable("bedrockgui.menu.servers"),
-                b -> mc.setScreen(new JoinMultiplayerScreen(this))).bounds(x, y + 28, 160, 24).build());
+        // Servers
+        this.addRenderableWidget(
+            Button.builder(
+                Component.translatable("bedrockgui.menu.servers"),
+                b -> mc.setScreen(new JoinMultiplayerScreen(this))
+            ).bounds(x, y + 34, buttonWidth, buttonHeight).build()
+        );
 
-        this.addRenderableWidget(Button.builder(Component.translatable("bedrockgui.menu.settings"),
-                b -> mc.setScreen(new OptionsScreen(this, mc.options))).bounds(x, y + 56, 160, 24).build());
+        // Settings
+        this.addRenderableWidget(
+            Button.builder(
+                Component.translatable("bedrockgui.menu.settings"),
+                b -> mc.setScreen(new OptionsScreen(this, mc.options))
+            ).bounds(x, y + 68, buttonWidth, buttonHeight).build()
+        );
 
-        this.addRenderableWidget(Button.builder(Component.translatable("bedrockgui.menu.quit"),
-                b -> mc.stop()).bounds(x, y + 84, 160, 24).build());
+        // Quit
+        this.addRenderableWidget(
+            Button.builder(
+                Component.translatable("bedrockgui.menu.quit"),
+                b -> mc.stop()
+            ).bounds(x, y + 102, buttonWidth, buttonHeight).build()
+        );
     }
 }
