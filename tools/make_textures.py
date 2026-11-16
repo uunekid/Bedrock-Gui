@@ -68,3 +68,33 @@ print("textures written")
 # Hide the "Java Edition" subtitle under the logo (Bedrock has none)
 os.makedirs(os.path.join(ROOT, "title"), exist_ok=True)
 Image.new("RGBA", (128, 14), (0, 0, 0, 0)).save(os.path.join(ROOT, "title", "edition.png"))
+
+# ---- Mod icon (128x128): window with two Bedrock-style buttons ----
+ICON_DIR = os.path.join(ROOT, "..", "..", "..", "bedrockgui")
+os.makedirs(ICON_DIR, exist_ok=True)
+
+def gr(v):
+    return (v, v, v, 255)
+
+def bevel(dr, x0, y0, x1, y1, fill=198):
+    dr.rectangle([x0, y0, x1, y1], fill=gr(fill))
+    dr.rectangle([x0, y0, x1, y0 + 2], fill=gr(235))
+    dr.rectangle([x0, y0, x0 + 2, y1], fill=gr(222))
+    dr.rectangle([x1 - 2, y0, x1, y1], fill=gr(170))
+    dr.rectangle([x0, y1 - 5, x1, y1 - 1], fill=gr(139))
+    dr.rectangle([x0, y1 - 1, x1, y1], fill=gr(58))
+
+ic = Image.new("RGBA", (128, 128))
+dr = ImageDraw.Draw(ic)
+dr.rectangle([0, 0, 127, 127], fill=(70, 120, 190, 255))
+for yy in range(0, 128, 2):
+    dr.line([0, yy, 127, yy], fill=(70 + yy // 6, 120 + yy // 8, 190, 255))
+dr.rectangle([10, 14, 117, 114], fill=gr(30))
+dr.rectangle([12, 16, 115, 112], fill=gr(198))
+dr.rectangle([12, 16, 115, 34], fill=gr(80))
+dr.rectangle([20, 22, 60, 28], fill=gr(230))
+bevel(dr, 24, 46, 103, 68)
+bevel(dr, 24, 78, 103, 100)
+dr.rectangle([48, 54, 79, 58], fill=gr(80))
+dr.rectangle([48, 86, 79, 90], fill=gr(80))
+ic.save(os.path.join(ICON_DIR, "icon.png"))
