@@ -10,23 +10,22 @@ os.makedirs(CON, exist_ok=True)
 
 DARK = (30, 30, 31, 255)
 
-def button(name, fill, light, shadow, outline=DARK):
-    im = Image.new("RGBA", (200, 20), (0, 0, 0, 0))
+def button(name, fill, top, left, right, mid, bottom):
+    g = lambda v: (v, v, v, 255)
+    im = Image.new("RGBA", (200, 20), g(fill))
     d = ImageDraw.Draw(im)
-    d.rectangle([0, 0, 199, 19], fill=outline)
-    d.rectangle([1, 1, 198, 18], fill=fill)
-    d.rectangle([1, 1, 198, 1], fill=light)
-    d.rectangle([1, 1, 1, 18], fill=light)
-    d.rectangle([1, 17, 198, 18], fill=shadow)
-    d.rectangle([198, 2, 198, 18], fill=shadow)
+    d.rectangle([0, 0, 199, 0], fill=g(top))
+    d.rectangle([0, 0, 0, 19], fill=g(left))
+    d.rectangle([199, 1, 199, 19], fill=g(right))
+    d.rectangle([1, 17, 198, 18], fill=g(mid))
+    d.rectangle([0, 19, 199, 19], fill=g(bottom))
     im.save(os.path.join(SPR, name + ".png"))
     with open(os.path.join(SPR, name + ".png.mcmeta"), "w") as f:
         json.dump({"gui": {"scaling": {"type": "nine_slice", "width": 200, "height": 20, "border": 3}}}, f)
 
-button("button", (198, 198, 198, 255), (222, 222, 222, 255), (138, 138, 138, 255))
-button("button_highlighted", (214, 214, 214, 255), (240, 240, 240, 255), (156, 156, 156, 255),
-       outline=(255, 255, 255, 255))
-button("button_disabled", (120, 120, 120, 255), (140, 140, 140, 255), (92, 92, 92, 255))
+button("button", 198, 222, 214, 170, 139, 58)
+button("button_highlighted", 212, 255, 255, 200, 150, 60)
+button("button_disabled", 150, 170, 165, 130, 110, 70)
 
 im = Image.new("RGBA", (256, 256), (0, 0, 0, 0))
 d = ImageDraw.Draw(im)
@@ -65,3 +64,7 @@ d.polygon([(104, 36), (104, 50), (112, 43)], fill=a)
 
 im.save(os.path.join(CON, "crafting_table.png"))
 print("textures written")
+
+# Hide the "Java Edition" subtitle under the logo (Bedrock has none)
+os.makedirs(os.path.join(ROOT, "title"), exist_ok=True)
+Image.new("RGBA", (128, 14), (0, 0, 0, 0)).save(os.path.join(ROOT, "title", "edition.png"))
