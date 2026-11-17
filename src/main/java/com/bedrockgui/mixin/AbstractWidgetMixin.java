@@ -19,7 +19,7 @@ public abstract class AbstractWidgetMixin {
             return;
         }
         AbstractWidget self = (AbstractWidget) (Object) this;
-        int rgb = self.active ? 0x303030 : 0x606060;
+        int rgb = !self.active ? 0x606060 : (self.isHoveredOrFocused() ? 0xFFFFFF : 0x303030);
         cir.setReturnValue(original.copy().withStyle(style -> {
             Style s = style.withShadowColor(0);
             return s.getColor() == null ? s.withColor(TextColor.fromRgb(rgb)) : s;
