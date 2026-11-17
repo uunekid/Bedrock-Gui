@@ -24,7 +24,16 @@ def button(name, fill, top, left, right, mid, bottom):
         json.dump({"gui": {"scaling": {"type": "nine_slice", "width": 200, "height": 20, "border": 3}}}, f)
 
 button("button", 198, 208, 198, 182, 139, 139)
-button("button_highlighted", 212, 232, 212, 196, 150, 150)
+hl = Image.new("RGBA", (200, 20), (32, 131, 5, 255))
+h = ImageDraw.Draw(hl)
+h.rectangle([0, 0, 199, 19], outline=(245, 250, 245, 255))
+h.rectangle([1, 1, 198, 1], fill=(110, 215, 118, 255))
+h.rectangle([1, 2, 1, 18], fill=(67, 181, 57, 255))
+h.rectangle([198, 2, 198, 18], fill=(10, 90, 2, 255))
+h.rectangle([2, 17, 197, 18], fill=(20, 74, 22, 255))
+hl.save(os.path.join(SPR, "button_highlighted.png"))
+with open(os.path.join(SPR, "button_highlighted.png.mcmeta"), "w") as f:
+    json.dump({"gui": {"scaling": {"type": "nine_slice", "width": 200, "height": 20, "border": 3}}}, f)
 button("button_disabled", 150, 170, 165, 130, 110, 70)
 
 im = Image.new("RGBA", (256, 256), (0, 0, 0, 0))
