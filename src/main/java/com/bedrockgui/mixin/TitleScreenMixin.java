@@ -36,7 +36,7 @@ public abstract class TitleScreenMixin extends Screen {
     private AbstractWidget bedrockgui$player;
 
     private static Component bedrockgui$label(String key) {
-                return Component.translatable(key);;
+                return Component.translatable(key);
     }
 
     private static void bedrockgui$part(GuiGraphics g, ResourceLocation tex, int x, int y,
