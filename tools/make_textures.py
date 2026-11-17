@@ -23,8 +23,8 @@ def button(name, fill, top, left, right, mid, bottom):
     with open(os.path.join(SPR, name + ".png.mcmeta"), "w") as f:
         json.dump({"gui": {"scaling": {"type": "nine_slice", "width": 200, "height": 20, "border": 3}}}, f)
 
-button("button", 198, 222, 214, 170, 139, 58)
-button("button_highlighted", 212, 255, 255, 200, 150, 60)
+button("button", 198, 208, 198, 182, 139, 139)
+button("button_highlighted", 212, 232, 212, 196, 150, 150)
 button("button_disabled", 150, 170, 165, 130, 110, 70)
 
 im = Image.new("RGBA", (256, 256), (0, 0, 0, 0))
