@@ -1,10 +1,13 @@
 package com.bedrockgui.mixin;
 
+import com.bedrockgui.client.BedrockPlayerWidget;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.PlayerSkinWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -33,7 +36,7 @@ public abstract class TitleScreenMixin extends Screen {
     private AbstractWidget bedrockgui$player;
 
     private static Component bedrockgui$label(String key) {
-        return Component.translatable(key).withStyle(style -> style.withColor(TextColor.fromRgb(0x505050)));
+        return Component.translatable(key).withStyle(style -> style.withColor(TextColor.fromRgb(0x303030)));
     }
 
     private static void bedrockgui$part(GuiGraphics g, ResourceLocation tex, int x, int y,
@@ -44,12 +47,15 @@ public abstract class TitleScreenMixin extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void bedrockgui$init(CallbackInfo ci) {
+        List<AbstractWidget> icons = new ArrayList<>();
         for (GuiEventListener child : this.children()) {
-            if (child instanceof AbstractWidget widget
-                    && widget.getHeight() == 20
-                    && widget.getWidth() >= 98) {
-                widget.visible = false;
-                widget.active = false;
+            if (child instanceof AbstractWidget widget) {
+                if (widget.getHeight() == 20 && widget.getWidth() >= 98) {
+                    widget.visible = false;
+                    widget.active = false;
+                } else if (widget.getHeight() == 20 && widget.getWidth() == 20) {
+                    icons.add(widget);
+                }
             }
         }
 
@@ -68,22 +74,31 @@ public abstract class TitleScreenMixin extends Screen {
         this.addRenderableWidget(Button.builder(bedrockgui$label("bedrockgui.menu.servers"),
                 b -> mc.setScreen(new JoinMultiplayerScreen(this))).bounds(x, y + 58, bw, 28).build());
 
+        int cx = (int) (this.width * 0.82);
+        int feet = (int) (this.height * 0.75);
+        int qw = Math.max(80, (int) (this.width * 0.16));
+        int qy = feet + 4;
+
         this.addRenderableWidget(Button.builder(bedrockgui$label("bedrockgui.menu.quit"),
-                b -> mc.stop()).bounds((int) (this.width * 0.012), (int) (this.height * 0.66),
-                Math.max(80, (int) (this.width * 0.16)), 24).build());
+                b -> mc.stop()).bounds(cx - qw / 2, qy, qw, 22).build());
+
+        icons.sort(Comparator.comparingInt(AbstractWidget::getX));
+        int iy = qy + 22 + 3;
+        for (int i = 0; i < icons.size(); i++) {
+            icons.get(i).setPosition(cx - 22 + i * 24, iy);
+        }
 
         this.bedrockgui$player = null;
         try {
-            int ph = (int) (this.height * 0.42);
+            int ph = (int) (this.height * 0.30);
             int pw = ph / 2;
-            int px = (int) (this.width * 0.82) - pw / 2;
-            int py = (int) (this.height * 0.75) - ph;
-            PlayerSkinWidget model = new PlayerSkinWidget(pw, ph, mc.getEntityModels(),
+            BedrockPlayerWidget model = new BedrockPlayerWidget(pw, ph, mc.getEntityModels(),
                     () -> mc.getSkinManager().getInsecureSkin(mc.getGameProfile()));
-            model.setPosition(px, py);
+            model.setPosition(cx - pw / 2, feet - ph);
             this.addRenderableWidget(model);
             this.bedrockgui$player = model;
         } catch (Throwable t) {
+            t.printStackTrace();
             this.bedrockgui$player = null;
         }
     }
@@ -114,6 +129,7 @@ public abstract class TitleScreenMixin extends Screen {
             bedrockgui$part(g, tex, cx - 4 * u, top, 40, 8, 8, 8, u);
         }
 
-        g.drawCenteredString(mc.font, mc.getUser().getName(), cx, top - 12, 0xFFFFFFFF);
+        int labelY = (this.bedrockgui$player != null ? this.bedrockgui$player.getY() : top) - 12;
+        g.drawCenteredString(mc.font, mc.getUser().getName(), cx, labelY, 0xFFFFFFFF);
     }
-        }
+}
