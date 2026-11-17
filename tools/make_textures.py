@@ -77,3 +77,26 @@ print("textures written")
 # Hide the "Java Edition" subtitle under the logo (Bedrock has none)
 os.makedirs(os.path.join(ROOT, "title"), exist_ok=True)
 Image.new("RGBA", (128, 14), (0, 0, 0, 0)).save(os.path.join(ROOT, "title", "edition.png"))
+
+# ---- Sliders (Options screens): Bedrock-style track and handle ----
+def sprite(name, width, fill, top, left, right, mid, bottom, edge=None):
+    def c(v):
+        return (v, v, v, 255) if isinstance(v, int) else tuple(v) + (255,)
+    sl = Image.new("RGBA", (width, 20), c(fill))
+    sd = ImageDraw.Draw(sl)
+    sd.rectangle([0, 0, width - 1, 0], fill=c(top))
+    sd.rectangle([0, 0, 0, 19], fill=c(left))
+    sd.rectangle([width - 1, 1, width - 1, 19], fill=c(right))
+    sd.rectangle([1, 17, width - 2, 18], fill=c(mid))
+    sd.rectangle([0, 19, width - 1, 19], fill=c(bottom))
+    if edge:
+        sd.rectangle([0, 0, width - 1, 19], outline=c(edge))
+    sl.save(os.path.join(SPR, name + ".png"))
+    with open(os.path.join(SPR, name + ".png.mcmeta"), "w") as mf:
+        json.dump({"gui": {"scaling": {"type": "nine_slice", "width": width, "height": 20, "border": 3}}}, mf)
+
+sprite("slider", 200, 150, 96, 110, 176, 176, 200)
+sprite("slider_highlighted", 200, (32, 131, 5), (20, 74, 22), (20, 90, 10), (67, 181, 57),
+       (67, 181, 57), (110, 215, 118), edge=(245, 250, 245))
+sprite("slider_handle", 8, 198, 235, 222, 170, 139, 58)
+sprite("slider_handle_highlighted", 8, 225, 255, 255, 190, 160, 70)
