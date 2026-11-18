@@ -19,7 +19,15 @@ public abstract class AbstractWidgetMixin {
         if (original == null) {
             return;
         }
+        if (BedrockSettingsScreen.rawRead) {
+            return;
+        }
         AbstractWidget self = (AbstractWidget) (Object) this;
+
+        if (BedrockSettingsScreen.HIDDEN_TEXT.contains(self)) {
+            cir.setReturnValue(Component.empty());
+            return;
+        }
 
         if (BedrockSettingsScreen.VALUE_ONLY.contains(self)) {
             String raw = original.getString();
