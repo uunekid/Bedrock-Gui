@@ -1,5 +1,6 @@
 package com.bedrockgui.mixin;
 
+import com.bedrockgui.client.BedrockSettingsScreen;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -19,7 +20,14 @@ public abstract class AbstractWidgetMixin {
             return;
         }
         AbstractWidget self = (AbstractWidget) (Object) this;
-        int rgb = !self.active ? 0x606060 : (self.isHoveredOrFocused() ? 0xFFFFFF : 0x303030);
+
+        if (BedrockSettingsScreen.VALUE_ONLY.contains(self)) {
+            String raw = original.getString();
+            int idx = raw.indexOf(": ");
+            original = Component.literal(idx >= 0 ? raw.substring(idx + 2) : raw);
+        }
+
+        final int rgb = !self.active ? 0x606060 : (self.isHoveredOrFocused() ? 0xFFFFFF : 0x303030);
         cir.setReturnValue(original.copy().withStyle(style -> {
             Style s = style.withShadowColor(0);
             return s.getColor() == null ? s.withColor(TextColor.fromRgb(rgb)) : s;
