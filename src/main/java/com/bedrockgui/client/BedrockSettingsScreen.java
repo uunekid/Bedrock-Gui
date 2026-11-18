@@ -1,35 +1,61 @@
 package com.bedrockgui.client;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.WeakHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.OptionInstance;
 import net.minecraft.client.Options;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.options.OptionsScreen;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundSource;
 
 public class BedrockSettingsScreen extends Screen {
 
     public static boolean allowVanilla = false;
 
+    public static final Set<AbstractWidget> VALUE_ONLY = Collections.newSetFromMap(new WeakHashMap<>());
+
     private static int lastTab = 0;
 
     private static final String[] TAB_KEYS = {"general", "controls", "video", "audio", "chat", "access"};
-    private static final int M = 8;
+
+    private static final String[] SIDE_KEYS = {"controls", "controls", "general", "general", "video", "audio", "chat", "access"};
+    private static final int[] SIDE_TABS = {-1, 1, -1, 0, 2, 3, 4, 5};
+
+    private static final int KIND_HEADER = 0;
+    private static final int KIND_TOGGLE = 1;
+    private static final int KIND_SLIDER = 2;
+    private static final int KIND_CYCLE = 3;
+    private static final int KIND_ACTION = 4;
+
+    private static final int HEADER_ROW_H = 18;
 
     private static final class Item {
+        final int kind;
+        final String label;
         final AbstractWidget widget;
-        final Component header;
         int y;
+        int h;
 
-        Item(AbstractWidget widget, Component header) {
+        Item(int kind, String label, AbstractWidget widget) {
+            this.kind = kind;
+            this.label = label;
             this.widget = widget;
-            this.header = header;
+            this.h = switch (kind) {
+                case KIND_HEADER -> 28;
+                case KIND_SLIDER -> 50;
+                default -> 34;
+            };
         }
     }
 
@@ -38,11 +64,10 @@ public class BedrockSettingsScreen extends Screen {
     private int tab;
 
     private final List<Item> items = new ArrayList<>();
-    private final List<AbstractWidget> tabButtons = new ArrayList<>();
 
-    private int sideLeft, sideRight, panelTop, panelBottom;
+    private int headerH, sideRight, tabRowH;
     private int viewLeft, viewRight, viewTop, viewBottom;
-    private int rowW;
+    private int contentX, contentRight, rowW;
     private int scroll;
     private int contentHeight;
 
@@ -59,36 +84,30 @@ public class BedrockSettingsScreen extends Screen {
     @Override
     protected void init() {
         this.items.clear();
-        this.tabButtons.clear();
         this.activeWidget = null;
         this.dragMode = 0;
 
-        int sideW = Math.max(96, Math.min(150, this.width / 4));
-        this.sideLeft = M;
-        this.sideRight = M + sideW;
-        this.panelTop = 30;
-        this.panelBottom = this.height - M;
-        this.viewLeft = this.sideRight + 6;
-        this.viewRight = this.width - M;
-        this.viewTop = this.panelTop + 2;
-        this.viewBottom = this.panelBottom - 2;
-        this.rowW = Math.max(100, Math.min(320, this.viewRight - this.viewLeft - 24));
+        this.headerH = 24;
+        this.sideRight = Math.max(110, (int) (this.width * 0.30));
+        this.viewLeft = this.sideRight + 1;
+        this.viewRight = this.width;
+        this.viewTop = this.headerH + 2;
+        this.viewBottom = this.height;
+        this.contentX = this.viewLeft + 14;
+        this.contentRight = this.viewRight - 14;
+        this.rowW = Math.max(100, this.contentRight - this.contentX);
 
-        int doneH = 22;
-        int avail = this.panelBottom - this.panelTop - doneH - 20;
-        int tabH = Math.max(18, Math.min(24, (avail - (TAB_KEYS.length - 1) * 4) / TAB_KEYS.length));
-        int y = this.panelTop + 6;
-        for (int i = 0; i < TAB_KEYS.length; i++) {
-            final int index = i;
-            Button button = Button.builder(Component.translatable("bedrockgui.settings.tab." + TAB_KEYS[i]),
-                    b -> this.selectTab(index)).bounds(this.sideLeft + 6, y, sideW - 12, tabH).build();
-            this.addRenderableWidget(button);
-            this.tabButtons.add(button);
-            y += tabH + 4;
+        int groups = 0;
+        int tabs = 0;
+        for (int t : SIDE_TABS) {
+            if (t < 0) {
+                groups++;
+            } else {
+                tabs++;
+            }
         }
-
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> this.onClose())
-                .bounds(this.sideLeft + 6, this.panelBottom - 6 - doneH, sideW - 12, doneH).build());
+        int avail = this.height - this.headerH - 8 - groups * HEADER_ROW_H;
+        this.tabRowH = Math.max(18, Math.min(28, avail / Math.max(1, tabs)));
 
         this.buildContent();
         this.layout();
@@ -103,21 +122,33 @@ public class BedrockSettingsScreen extends Screen {
     }
 
     private void layout() {
-        this.scroll = Math.max(0, Math.min(this.scroll, this.maxScroll()));
-        int start = this.viewTop + 6 - this.scroll;
+        int start = this.viewTop - this.scroll;
         int y = start;
-        int x = this.viewLeft + 8;
         for (Item item : this.items) {
-            if (item.widget == null) {
-                item.y = y + 4;
-                y += 18;
-            } else {
-                item.widget.setX(x);
-                item.widget.setY(y);
-                y += 24;
+            item.y = y;
+            if (item.widget != null) {
+                switch (item.kind) {
+                    case KIND_TOGGLE -> {
+                        item.widget.setX(this.contentRight - item.widget.getWidth());
+                        item.widget.setY(y + (item.h - item.widget.getHeight()) / 2);
+                    }
+                    case KIND_SLIDER -> {
+                        item.widget.setX(this.contentX);
+                        item.widget.setY(y + item.h - 26);
+                    }
+                    case KIND_CYCLE -> {
+                        item.widget.setX(this.contentRight - item.widget.getWidth());
+                        item.widget.setY(y + (item.h - item.widget.getHeight()) / 2);
+                    }
+                    default -> {
+                        item.widget.setX(this.contentX);
+                        item.widget.setY(y + (item.h - item.widget.getHeight()) / 2);
+                    }
+                }
             }
+            y += item.h;
         }
-        this.contentHeight = (y - start) + 8;
+        this.contentHeight = y - start + 8;
         int max = this.maxScroll();
         if (this.scroll > max) {
             this.scroll = max;
@@ -134,11 +165,29 @@ public class BedrockSettingsScreen extends Screen {
     }
 
     private void header(String key) {
-        this.items.add(new Item(null, Component.translatable("bedrockgui.settings.h." + key)));
+        String text = Component.translatable("bedrockgui.settings.h." + key).getString().toUpperCase();
+        this.items.add(new Item(KIND_HEADER, text, null));
     }
 
     private void opt(OptionInstance<?> option) {
-        this.items.add(new Item(option.createButton(this.options, 0, 0, this.rowW), null));
+        Object current = option.get();
+        AbstractWidget probe = option.createButton(this.options, 0, 0, this.rowW);
+        String raw = probe.getMessage().getString();
+        int idx = raw.indexOf(": ");
+        String caption = idx >= 0 ? raw.substring(0, idx) : raw;
+
+        if (current instanceof Boolean) {
+            @SuppressWarnings("unchecked")
+            OptionInstance<Boolean> bool = (OptionInstance<Boolean>) option;
+            this.items.add(new Item(KIND_TOGGLE, caption, new BedrockToggle(bool)));
+        } else if (probe instanceof AbstractSliderButton) {
+            VALUE_ONLY.add(probe);
+            this.items.add(new Item(KIND_SLIDER, caption, probe));
+        } else {
+            probe.setWidth(110);
+            VALUE_ONLY.add(probe);
+            this.items.add(new Item(KIND_CYCLE, caption, probe));
+        }
     }
 
     private void moreSettings() {
@@ -151,7 +200,7 @@ public class BedrockSettingsScreen extends Screen {
                 allowVanilla = false;
             }
         }).bounds(0, 0, this.rowW, 20).build();
-        this.items.add(new Item(button, null));
+        this.items.add(new Item(KIND_ACTION, "", button));
     }
 
     private void buildContent() {
@@ -261,45 +310,81 @@ public class BedrockSettingsScreen extends Screen {
         }
     }
 
-    private static void panel(GuiGraphics g, int x1, int y1, int x2, int y2, int fill) {
-        g.fill(x1, y1, x2, y2, 0xFF1E1E1F);
-        g.fill(x1 + 1, y1 + 1, x2 - 1, y2 - 1, fill);
-        g.fill(x1 + 1, y1 + 1, x2 - 1, y1 + 2, 0xFF606162);
-    }
-
-    private static void outline(GuiGraphics g, int x, int y, int w, int h, int color) {
-        g.fill(x, y, x + w, y + 2, color);
-        g.fill(x, y + h - 2, x + w, y + h, color);
-        g.fill(x, y, x + 2, y + h, color);
-        g.fill(x + w - 2, y, x + w, y + h, color);
-    }
-
     @Override
     public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         super.renderBackground(g, mouseX, mouseY, partialTick);
-        panel(g, this.sideLeft, this.panelTop, this.sideRight, this.panelBottom, 0xFF353637);
-        panel(g, this.viewLeft - 2, this.panelTop, this.viewRight, this.panelBottom, 0xFF48494A);
+        g.fill(0, this.headerH, this.sideRight, this.height, 0xFF313233);
+        g.fill(this.sideRight, this.headerH, this.width, this.height, 0xFF48494A);
+        g.fill(this.sideRight, this.headerH, this.sideRight + 1, this.height, 0xFF1E1E1F);
+        g.fill(0, 0, this.width, this.headerH, 0xFFE6E6E8);
+        g.fill(0, this.headerH, this.width, this.headerH + 2, 0xFF8E8F90);
+    }
+
+    private void renderSidebar(GuiGraphics g, int mouseX, int mouseY) {
+        int y = this.headerH + 4;
+        for (int i = 0; i < SIDE_TABS.length; i++) {
+            int tabIndex = SIDE_TABS[i];
+            Component name = Component.translatable("bedrockgui.settings.tab." + SIDE_KEYS[i]);
+            if (tabIndex < 0) {
+                g.drawString(this.font, name, 10, y + 5, 0xFFA8A8A8, false);
+                g.fill(0, y + HEADER_ROW_H - 2, this.sideRight, y + HEADER_ROW_H - 1, 0xFF1E1E1F);
+                y += HEADER_ROW_H;
+            } else {
+                boolean hovered = mouseX < this.sideRight && mouseY >= y && mouseY < y + this.tabRowH;
+                if (tabIndex == this.tab) {
+                    g.fill(0, y, this.sideRight, y + this.tabRowH, 0xFF4A4B4C);
+                } else if (hovered) {
+                    g.fill(0, y, this.sideRight, y + this.tabRowH, 0xFF3C3D3E);
+                }
+                ResourceLocation icon = ResourceLocation.fromNamespaceAndPath("bedrockgui",
+                        "textures/gui/icon_" + TAB_KEYS[tabIndex] + ".png");
+                g.blit(RenderPipelines.GUI_TEXTURED, icon, 8, y + (this.tabRowH - 16) / 2, 0.0F, 0.0F, 16, 16, 16, 16);
+                g.drawString(this.font, name, 30, y + (this.tabRowH - 8) / 2, 0xFFFFFFFF, false);
+                y += this.tabRowH;
+            }
+        }
+    }
+
+    private int tabAt(double mouseY) {
+        int y = this.headerH + 4;
+        for (int i = 0; i < SIDE_TABS.length; i++) {
+            if (SIDE_TABS[i] < 0) {
+                y += HEADER_ROW_H;
+            } else {
+                if (mouseY >= y && mouseY < y + this.tabRowH) {
+                    return SIDE_TABS[i];
+                }
+                y += this.tabRowH;
+            }
+        }
+        return -1;
     }
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         super.render(g, mouseX, mouseY, partialTick);
 
-        g.drawString(this.font, this.title, M + 2, 12, 0xFFFFFFFF);
+        g.drawString(this.font, Component.literal("<").withStyle(s -> s.withBold(true)), 12, (this.headerH - 8) / 2,
+                0xFF303030, false);
+        Component title = Component.literal(this.title.getString().toUpperCase()).withStyle(s -> s.withBold(true));
+        int titleW = this.font.width(title);
+        g.drawString(this.font, title, (this.width - titleW) / 2, (this.headerH - 8) / 2, 0xFF303030, false);
 
-        if (this.tab >= 0 && this.tab < this.tabButtons.size()) {
-            AbstractWidget selected = this.tabButtons.get(this.tab);
-            outline(g, selected.getX() - 2, selected.getY() - 2, selected.getWidth() + 4,
-                    selected.getHeight() + 4, 0xFF35B72A);
-        }
+        this.renderSidebar(g, mouseX, mouseY);
 
         g.enableScissor(this.viewLeft, this.viewTop, this.viewRight, this.viewBottom);
         for (Item item : this.items) {
-            if (item.widget == null) {
-                g.drawString(this.font, item.header, this.viewLeft + 8, item.y, 0xFFE8E8E8);
-            } else {
+            if (item.kind == KIND_HEADER) {
+                Component text = Component.literal(item.label).withStyle(s -> s.withBold(true));
+                g.drawString(this.font, text, this.contentX, item.y + 12, 0xFFFFFFFF, false);
+            } else if (!item.label.isEmpty()) {
+                int labelY = item.kind == KIND_SLIDER ? item.y + 8 : item.y + (item.h - 8) / 2;
+                g.drawString(this.font, item.label, this.contentX, labelY, 0xFFFFFFFF, false);
+            }
+            if (item.widget != null) {
                 item.widget.render(g, mouseX, mouseY, partialTick);
             }
+            g.fill(this.contentX, item.y + item.h - 1, this.contentRight, item.y + item.h, 0xFF3A3B3C);
         }
         g.disableScissor();
 
@@ -316,14 +401,12 @@ public class BedrockSettingsScreen extends Screen {
         if (max <= 0) {
             return;
         }
-        int x1 = this.viewRight - 8;
+        int x1 = this.viewRight - 6;
         int x2 = this.viewRight - 2;
         int trackH = this.viewBottom - this.viewTop;
         int handleH = this.handleHeight();
         int handleY = this.viewTop + (int) ((long) (trackH - handleH) * this.scroll / max);
-        g.fill(x1, this.viewTop, x2, this.viewBottom, 0xFF2B2C2D);
-        g.fill(x1, handleY, x2, handleY + handleH, 0xFFC6C6C6);
-        g.fill(x1, handleY, x2, handleY + 1, 0xFFE6E6E6);
+        g.fill(x1, handleY, x2, handleY + handleH, 0xFFE8E8E8);
     }
 
     private void scrollFromBar(double mouseY) {
@@ -344,21 +427,36 @@ public class BedrockSettingsScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && this.inView(mouseX, mouseY)) {
-            if (this.maxScroll() > 0 && mouseX >= this.viewRight - 10) {
-                this.dragMode = 2;
-                this.scrollFromBar(mouseY);
+        if (button == 0) {
+            if (mouseY < this.headerH) {
+                if (mouseX < 40) {
+                    this.onClose();
+                }
                 return true;
             }
-            for (Item item : this.items) {
-                if (item.widget != null && item.widget.mouseClicked(mouseX, mouseY, button)) {
-                    this.activeWidget = item.widget;
-                    this.dragMode = 1;
+            if (mouseX < this.sideRight) {
+                int t = this.tabAt(mouseY);
+                if (t >= 0) {
+                    this.selectTab(t);
+                }
+                return true;
+            }
+            if (this.inView(mouseX, mouseY)) {
+                if (this.maxScroll() > 0 && mouseX >= this.viewRight - 12) {
+                    this.dragMode = 2;
+                    this.scrollFromBar(mouseY);
                     return true;
                 }
+                for (Item item : this.items) {
+                    if (item.widget != null && item.widget.mouseClicked(mouseX, mouseY, button)) {
+                        this.activeWidget = item.widget;
+                        this.dragMode = 1;
+                        return true;
+                    }
+                }
+                this.dragMode = 3;
+                return true;
             }
-            this.dragMode = 3;
-            return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }
@@ -410,4 +508,4 @@ public class BedrockSettingsScreen extends Screen {
     public void removed() {
         this.options.save();
     }
-          }
+                                }
