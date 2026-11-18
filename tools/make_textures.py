@@ -151,3 +151,28 @@ idr.rectangle([3, 6, 12, 7], fill=(255, 255, 255, 255))
 idr.rectangle([5, 10, 6, 13], fill=(255, 255, 255, 255))
 idr.rectangle([9, 10, 10, 13], fill=(255, 255, 255, 255))
 ic.save(os.path.join(ICON_OUT, "icon_access.png"))
+# ---- Thin Bedrock-style slider track and a clear handle ----
+def thin_track(name, track, top, bottom):
+    t = Image.new("RGBA", (200, 20), (0, 0, 0, 0))
+    td = ImageDraw.Draw(t)
+    td.rectangle([0, 7, 199, 12], fill=(track, track, track, 255))
+    td.rectangle([0, 7, 199, 7], fill=(top, top, top, 255))
+    td.rectangle([0, 12, 199, 12], fill=(bottom, bottom, bottom, 255))
+    t.save(os.path.join(SPR, name + ".png"))
+    with open(os.path.join(SPR, name + ".png.mcmeta"), "w") as tf:
+        json.dump({"gui": {"scaling": {"type": "nine_slice", "width": 200, "height": 20, "border": 3}}}, tf)
+
+def handle(name, fill, edge):
+    hd = Image.new("RGBA", (8, 20), (fill, fill, fill, 255))
+    hdd = ImageDraw.Draw(hd)
+    hdd.rectangle([0, 0, 7, 19], outline=edge + (255,))
+    hdd.rectangle([1, 1, 6, 1], fill=(240, 240, 240, 255))
+    hdd.rectangle([1, 16, 6, 18], fill=(139, 139, 139, 255))
+    hd.save(os.path.join(SPR, name + ".png"))
+    with open(os.path.join(SPR, name + ".png.mcmeta"), "w") as hf:
+        json.dump({"gui": {"scaling": {"type": "nine_slice", "width": 8, "height": 20, "border": 3}}}, hf)
+
+thin_track("slider", 150, 100, 178)
+thin_track("slider_highlighted", 172, 120, 200)
+handle("slider_handle", 198, (30, 30, 31))
+handle("slider_handle_highlighted", 225, (255, 255, 255))
