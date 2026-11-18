@@ -25,6 +25,10 @@ public class BedrockSettingsScreen extends Screen {
 
     public static final Set<AbstractWidget> VALUE_ONLY = Collections.newSetFromMap(new WeakHashMap<>());
 
+    public static final Set<AbstractWidget> HIDDEN_TEXT = Collections.newSetFromMap(new WeakHashMap<>());
+
+    public static boolean rawRead = false;
+
     private static int lastTab = 0;
 
     private static final String[] TAB_KEYS = {"general", "controls", "video", "audio", "chat", "access"};
@@ -181,12 +185,23 @@ public class BedrockSettingsScreen extends Screen {
             OptionInstance<Boolean> bool = (OptionInstance<Boolean>) option;
             this.items.add(new Item(KIND_TOGGLE, caption, new BedrockToggle(bool)));
         } else if (probe instanceof AbstractSliderButton) {
-            VALUE_ONLY.add(probe);
+            HIDDEN_TEXT.add(probe);
             this.items.add(new Item(KIND_SLIDER, caption, probe));
         } else {
             probe.setWidth(110);
             VALUE_ONLY.add(probe);
             this.items.add(new Item(KIND_CYCLE, caption, probe));
+        }
+    }
+
+    private static String valueOf(AbstractWidget widget) {
+        rawRead = true;
+        try {
+            String raw = widget.getMessage().getString();
+            int idx = raw.indexOf(": ");
+            return idx >= 0 ? raw.substring(idx + 2) : raw;
+        } finally {
+            rawRead = false;
         }
     }
 
@@ -324,7 +339,8 @@ public class BedrockSettingsScreen extends Screen {
         int y = this.headerH + 4;
         for (int i = 0; i < SIDE_TABS.length; i++) {
             int tabIndex = SIDE_TABS[i];
-            Component name = Component.translatable("bedrockgui.settings.tab." + SIDE_KEYS[i]);
+            Component name = Component.translatable(
+                    (tabIndex < 0 ? "bedrockgui.settings.group." : "bedrockgui.settings.tab.") + SIDE_KEYS[i]);
             if (tabIndex < 0) {
                 g.drawString(this.font, name, 10, y + 5, 0xFFA8A8A8, false);
                 g.fill(0, y + HEADER_ROW_H - 2, this.sideRight, y + HEADER_ROW_H - 1, 0xFF1E1E1F);
@@ -380,6 +396,10 @@ public class BedrockSettingsScreen extends Screen {
             } else if (!item.label.isEmpty()) {
                 int labelY = item.kind == KIND_SLIDER ? item.y + 8 : item.y + (item.h - 8) / 2;
                 g.drawString(this.font, item.label, this.contentX, labelY, 0xFFFFFFFF, false);
+                if (item.kind == KIND_SLIDER && item.widget != null) {
+                    String value = valueOf(item.widget);
+                    g.drawString(this.font, value, this.contentRight - this.font.width(value), labelY, 0xFFD0D0D0, false);
+                }
             }
             if (item.widget != null) {
                 item.widget.render(g, mouseX, mouseY, partialTick);
@@ -508,4 +528,4 @@ public class BedrockSettingsScreen extends Screen {
     public void removed() {
         this.options.save();
     }
-                                }
+            }
